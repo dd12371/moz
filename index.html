@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zonenzeit & Mittlere Ortszeit (MOZ) Rechner</title>
+    <!-- Chart.js für grafische Auswertung -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-base: #0a0e1a;
+            --bg-card: #121829;
+            --bg-card-alt: #18223a;
+            --border: #22304e;
+            --accent-cyan: #00d2ff;
+            --accent-blue: #3a7bd5;
+            --accent-gold: #ffb703;
+            --accent-rose: #ff4d6d;
+            --accent-green: #06d6a0;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            padding: 24px 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1300px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, #131d33, #0b1120);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header-title h1 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--accent-cyan), #ffffff);
+            -webkit-background-clip: text;
+            background-clip: text; /* Korrigiert: Standard-Eigenschaft für VS Code Linter */
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .utc-clock-badge {
+            background: rgba(0, 210, 255, 0.08);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 12px;
+            padding: 10px 20px;
+            text-align: right;
+        }
+
+        .utc-clock-badge .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .utc-clock-badge .time {
+            font-family: var(--font-mono);
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* CARDS & LAYOUT */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* BUTTONS & FORM ELEMENTS */
+        .btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 210, 255, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--text-muted);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .btn-danger {
+            background: rgba(255, 77, 109, 0.15);
+            border: 1px solid rgba(255, 77, 109, 0.4);
+            color: var(--accent-rose);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 77, 109, 0.3);
+            border-color: var(--accent-rose);
+            box-shadow: 0 4px 12px rgba(255, 77, 109, 0.2);
+        }
+
+        input, select {
+            background: #0d1322;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        /* VALUE DISPLAYS */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-box .title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .stat-box .value {
+            font-family: var(--font-mono);
+            font-size: 1.45rem;
+            font-weight: 700;
+        }
+
+        .stat-box .subtext {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .highlight-cyan { color: var(--accent-cyan); }
+        .highlight-gold { color: var(--accent-gold); }
+        .highlight-rose { color: var(--accent-rose); }
+        .highlight-green { color: var(--accent-green); }
+
+        /* STANDORT TABELLE / LISTE */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .locations-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            font-size: 0.85rem;
+        }
+
+        .locations-table th {
+            padding: 10px 14px;
+            color: var(--text-muted);
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .location-row {
+            background: #0d1322;
+            transition: background 0.2s;
+        }
+
+        .location-row td {
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .location-row td:first-child {
+            border-left: 1px solid var(--border);
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+
+        .location-row td:last-child {
+            border-right: 1px solid var(--border);
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .location-row:hover {
+            background: #121b30;
+        }
+
+        .time-cell {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .badge-pos { background: rgba(0, 210, 255, 0.15); color: var(--accent-cyan); }
+        .badge-neg { background: rgba(255, 77, 109, 0.15); color: var(--accent-rose); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 16px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+        }
+
+        /* REFERENZ-TABELLE */
+        .ref-table-wrap {
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        .ref-table th {
+            position: sticky;
+            top: 0;
+            background: #0d1322;
+            padding: 12px 16px;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            z-index: 2;
+        }
+
+        .ref-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-family: var(--font-mono);
+        }
+
+        .ref-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .chart-box {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER MIT ECHTER UTC UHR -->
+    <header>
+        <div class="header-title">
+            <h1>Zonenzeit & Mittlere Ortszeit (MOZ)</h1>
+            <p>Berechnung des genauen Sonnenstands und der Meridian-Abweichung</p>
+        </div>
+        <div class="utc-clock-badge">
+            <div class="label">Koordinierte Weltzeit (UTC)</div>
+            <div class="time" id="live-utc">--:--:-- UTC</div>
+        </div>
+    </header>
+
+    <!-- OBERES GRID: EIGENER STANDORT + CHART -->
+    <div class="grid-2">
+        
+        <!-- EIGENER STANDORT RECHNER -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📍 Mein genauer Standort</h2>
+                <button class="btn btn-sm" id="btn-gps">📡 GPS Ermitteln</button>
+            </div>
+
+            <!-- EINGABEFELDER -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 12px;">
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Breitengrad (°N / °S)</label>
+                    <input type="number" id="user-lat" step="0.0001" value="52.5200" style="width: 100%;">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Längengrad (°E / °W)</label>
+                    <input type="number" id="user-lon" step="0.0001" value="13.4050" style="width: 100%;">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Zonenzeit (UTC-Offset)</label>
+                    <select id="user-offset" style="width: 100%;"></select>
+                </div>
+            </div>
+
+            <!-- ERGEBNISSE -->
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <span class="title">Zonenzeit (Uhrzeit)</span>
+                    <span class="value highlight-cyan" id="user-zone-time">--:--:--</span>
+                    <span class="subtext" id="user-ref-meridian">Meridian: --°</span>
+                </div>
+                <div class="stat-box">
+                    <span class="title">Mittlere Ortszeit (MOZ)</span>
+                    <span class="value highlight-gold" id="user-moz-time">--:--:--</span>
+                    <span class="subtext" id="user-lon-text">Länge: --°</span>
+                </div>
+                <div class="stat-box">
+                    <span class="title">Abweichung</span>
+                    <span class="value highlight-rose" id="user-diff-time">--</span>
+                    <span class="subtext" id="user-diff-direction">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATISTIK / GRAFIK (CHART.JS) -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Abweichung zur Zonenzeit (in Minuten)</h2>
+            </div>
+            <div class="chart-box">
+                <canvas id="deviationChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- STANDORT-VERGLEICHSTABELLE (UNBEGRENZT & FREI BENENNBAR) -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h2>📋 Standort-Vergleichsliste (Unbegrenzte Orte)</h2>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Beliebig viele Orte hinzufügen, benennen und berechnen.</span>
+            </div>
+            <button class="btn btn-sm" id="btn-add-location">➕ Ort hinzufügen</button>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+            Noch keine Vergleichsorte eingetragen. Klicken Sie auf <strong>„➕ Ort hinzufügen“</strong>, um einen eigenen Standort anzulegen!
+        </div>
+
+        <div class="table-responsive" id="table-wrap" style="display: none;">
+            <table class="locations-table">
+                <thead>
+                    <tr>
+                        <th style="min-width: 180px;">Name / Notiz</th>
+                        <th style="min-width: 120px;">Breite (°N/°S)</th>
+                        <th style="min-width: 120px;">Länge (°E/°W)</th>
+                        <th style="min-width: 160px;">Zonenzeit</th>
+                        <th>Uhrzeit (Zone)</th>
+                        <th>Mittlere Ortszeit</th>
+                        <th>Abweichung</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="locations-tbody">
+                    <!-- Dynamisch erzeugte Zeilen ohne Flackern -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- VOLLSTÄNDIGE REFERENZTABELLE ALLER UTC ZEITEN -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🌐 Nachschlagewerk: Alle UTC-Zeiten & Bezugslängengrade</h2>
+            <input type="text" id="table-search" placeholder="Suchen (z.B. +01:00, 15°, Berlin)..." style="width: 280px;">
+        </div>
+        <div class="ref-table-wrap">
+            <table class="ref-table">
+                <thead>
+                    <tr>
+                        <th>UTC-Offset</th>
+                        <th>Bezugslängengrad (&lambda;<sub>0</sub>)</th>
+                        <th>Winkelmaß / Richtung</th>
+                        <th>Referenzregionen & Beispiele</th>
+                        <th>Zeitabstand zu UTC</th>
+                    </tr>
+                </thead>
+                <tbody id="ref-table-body">
+                    <!-- Befüllt per JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* global Chart */
+
+/**
+ * 1. DATENBANK ALLER UTC-ZEITZONEN & BEZUGSMERIDIANE (UTC-12 BIS UTC+14)
+ */
+const UTC_ZONES = [
+    { offset: -12, label: "UTC-12:00", lon: -180, region: "Bakerinsel, Howlandinsel" },
+    { offset: -11, label: "UTC-11:00", lon: -165, region: "Amerikanisch-Samoa, Niue" },
+    { offset: -10, label: "UTC-10:00", lon: -150, region: "Hawaii (HST), Cookinseln" },
+    { offset: -9.5, label: "UTC-09:30", lon: -142.5, region: "Marquesas-Inseln" },
+    { offset: -9, label: "UTC-09:00", lon: -135, region: "Alaska (AKST)" },
+    { offset: -8, label: "UTC-08:00", lon: -120, region: "Los Angeles, Vancouver (PST)" },
+    { offset: -7, label: "UTC-07:00", lon: -105, region: "Denver, Phoenix (MST)" },
+    { offset: -6, label: "UTC-06:00", lon: -90, region: "Chicago, Mexiko-Stadt (CST)" },
+    { offset: -5, label: "UTC-05:00", lon: -75, region: "New York, Toronto, Bogotá (EST)" },
+    { offset: -4, label: "UTC-04:00", lon: -60, region: "Santiago de Chile, Halifax, Manaus" },
+    { offset: -3.5, label: "UTC-03:30", lon: -52.5, region: "Neufundland (NST)" },
+    { offset: -3, label: "UTC-03:00", lon: -45, region: "São Paulo, Buenos Aires, Grönland" },
+    { offset: -2, label: "UTC-02:00", lon: -30, region: "Südgeorgien, Fernando de Noronha" },
+    { offset: -1, label: "UTC-01:00", lon: -15, region: "Kap Verde, Azoren" },
+    { offset: 0, label: "UTC±00:00", lon: 0, region: "London, Dublin, Lissabon, Reykjavik (GMT/WET)" },
+    { offset: 1, label: "UTC+01:00", lon: 15, region: "Berlin, Paris, Rom, Lagos, Wien, Zürich (MEZ)" },
+    { offset: 2, label: "UTC+02:00", lon: 30, region: "Athen, Kairo, Helsinki, Kapstadt (OEZ)" },
+    { offset: 3, label: "UTC+03:00", lon: 45, region: "Moskau, Istanbul, Riad, Nairobi (MSK)" },
+    { offset: 3.5, label: "UTC+03:30", lon: 52.5, region: "Teheran (Iran)" },
+    { offset: 4, label: "UTC+04:00", lon: 60, region: "Dubai, Baku, Tiflis, Samara" },
+    { offset: 4.5, label: "UTC+04:30", lon: 67.5, region: "Kabul (Afghanistan)" },
+    { offset: 5, label: "UTC+05:00", lon: 75, region: "Karatschi, Taschkent, Jekaterinburg" },
+    { offset: 5.5, label: "UTC+05:30", lon: 82.5, region: "Neu-Delhi, Mumbai, Colombo (IST)" },
+    { offset: 5.75, label: "UTC+05:45", lon: 86.25, region: "Kathmandu (Nepal)" },
+    { offset: 6, label: "UTC+06:00", lon: 90, region: "Dhaka, Almaty, Omsk" },
+    { offset: 6.5, label: "UTC+06:30", lon: 97.5, region: "Rangun (Myanmar), Kokosinseln" },
+    { offset: 7, label: "UTC+07:00", lon: 105, region: "Bangkok, Jakarta, Hanoi, Nowosibirsk" },
+    { offset: 8, label: "UTC+08:00", lon: 120, region: "Peking, Singapur, Perth, Taipeh (CST)" },
+    { offset: 8.75, label: "UTC+08:45", lon: 131.25, region: "Eucla (Australien)" },
+    { offset: 9, label: "UTC+09:00", lon: 135, region: "Tokio, Seoul, Pjöngjang (JST)" },
+    { offset: 9.5, label: "UTC+09:30", lon: 142.5, region: "Adelaide, Darwin (ACST)" },
+    { offset: 10, label: "UTC+10:00", lon: 150, region: "Sydney, Melbourne, Wladiwostok (AEST)" },
+    { offset: 10.5, label: "UTC+10:30", lon: 157.5, region: "Lord-Howe-Insel" },
+    { offset: 11, label: "UTC+11:00", lon: 165, region: "Salomonen, Neukaledonien" },
+    { offset: 12, label: "UTC+12:00", lon: 180, region: "Auckland, Fidschi, Marshallinseln" },
+    { offset: 12.75, label: "UTC+12:45", lon: 191.25, region: "Chatham-Inseln" },
+    { offset: 13, label: "UTC+13:00", lon: 195, region: "Samoa, Tonga, Phoenixinseln" },
+    { offset: 14, label: "UTC+14:00", lon: 210, region: "Kiritimati (Line Islands)" }
+];
+
+// Beliebig erweiterbare Liste (keine vorgegebenen Beispielorte)
+let locations = [];
+
+/**
+ * 2. ZEITBERECHNUNG & FORMATIERUNG
+ */
+function formatDegrees(deg) {
+    if (isNaN(deg)) return "0.00°";
+    const dir = deg >= 0 ? "E (Ost)" : "W (West)";
+    return `${Math.abs(deg).toFixed(2)}° ${dir}`;
+}
+
+function formatDecimalHours(hoursTotal) {
+    let normalized = ((hoursTotal % 24) + 24) % 24;
+    let h = Math.floor(normalized);
+    let m = Math.floor((normalized - h) * 60);
+    let s = Math.floor(((normalized - h) * 60 - m) * 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDifference(min) {
+    if (isNaN(min)) return "--";
+    const sign = min >= 0 ? "+" : "-";
+    const abs = Math.abs(min);
+    const m = Math.floor(abs);
+    const s = Math.round((abs - m) * 60);
+    return `${sign}${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+function calculateLocationValues(lon, offset, now) {
+    const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600 + now.getUTCMilliseconds() / 3600000;
+    
+    // Zonenzeit
+    const zoneHours = utcHours + offset;
+    
+    // Mittlere Ortszeit: Längengrad / 15 Grad pro Stunde
+    const mozHours = utcHours + (lon / 15.0);
+
+    // Bezugsmeridian
+    const refMeridian = offset * 15.0;
+
+    // Zeitabweichung in Minuten
+    const diffMinutes = (lon - refMeridian) * 4.0;
+
+    return {
+        zoneTime: formatDecimalHours(zoneHours),
+        mozTime: formatDecimalHours(mozHours),
+        diffMinutes: diffMinutes,
+        refMeridian: refMeridian,
+        diffFormatted: formatDifference(diffMinutes)
+    };
+}
+
+/**
+ * 3. FLÜSSIGE MASTER-UHR (KEIN DOM-REBUILD -> KEIN STOTTERN)
+ */
+function updateClocks() {
+    const now = new Date();
+
+    // 1. UTC Master
+    const utcStr = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')} UTC`;
+    document.getElementById('live-utc').textContent = utcStr;
+
+    // 2. Mein genauer Standort
+    const userLon = parseFloat(document.getElementById('user-lon').value) || 0;
+    const userOffset = parseFloat(document.getElementById('user-offset').value) || 0;
+    const userCalc = calculateLocationValues(userLon, userOffset, now);
+
+    document.getElementById('user-zone-time').textContent = userCalc.zoneTime;
+    document.getElementById('user-moz-time').textContent = userCalc.mozTime;
+    document.getElementById('user-diff-time').textContent = userCalc.diffFormatted;
+    document.getElementById('user-ref-meridian').textContent = `Bezug: ${formatDegrees(userCalc.refMeridian)}`;
+    document.getElementById('user-lon-text').textContent = `Länge: ${formatDegrees(userLon)}`;
+
+    const diffEl = document.getElementById('user-diff-time');
+    const dirEl = document.getElementById('user-diff-direction');
+
+    if (Math.abs(userCalc.diffMinutes) < 0.01) {
+        diffEl.className = "value highlight-gold";
+        dirEl.textContent = "Exakt synchron mit Bezugsmeridian";
+    } else if (userCalc.diffMinutes > 0) {
+        diffEl.className = "value highlight-cyan";
+        dirEl.textContent = "MOZ geht VOR (liegt östlich vom Meridian)";
+    } else {
+        diffEl.className = "value highlight-rose";
+        dirEl.textContent = "MOZ geht NACH (liegt westlich vom Meridian)";
+    }
+
+    // 3. Alle Standorte in der Tabelle gezielt aktualisieren
+    locations.forEach(loc => {
+        const row = document.getElementById(`loc-row-${loc.id}`);
+        if (!row) return;
+
+        const calc = calculateLocationValues(loc.lon, loc.offset, now);
+        
+        const zoneCell = row.querySelector('.cell-zone-time');
+        const mozCell = row.querySelector('.cell-moz-time');
+        const diffCell = row.querySelector('.cell-diff');
+
+        if (zoneCell) zoneCell.textContent = calc.zoneTime;
+        if (mozCell) mozCell.textContent = calc.mozTime;
+        if (diffCell) {
+            diffCell.textContent = calc.diffFormatted;
+            diffCell.className = `badge cell-diff ${calc.diffMinutes >= 0 ? 'badge-pos' : 'badge-neg'}`;
+        }
+    });
+}
+
+/**
+ * 4. STANDORT-TABELLE MANAGEMENT
+ */
+function addLocation() {
+    const newLoc = {
+        id: Date.now(),
+        name: `Ort ${locations.length + 1}`,
+        lat: 0.0000,
+        lon: 0.0000,
+        offset: 0
+    };
+    locations.push(newLoc);
+    renderLocationRow(newLoc);
+    checkEmptyState();
+    updateChart();
+}
+
+function removeLocation(id) {
+    locations = locations.filter(l => l.id !== id);
+    const row = document.getElementById(`loc-row-${id}`);
+    if (row) row.remove();
+    checkEmptyState();
+    updateChart();
+}
+
+function checkEmptyState() {
+    const emptyState = document.getElementById('empty-state');
+    const tableWrap = document.getElementById('table-wrap');
+    if (locations.length === 0) {
+        emptyState.style.display = "block";
+        tableWrap.style.display = "none";
+    } else {
+        emptyState.style.display = "none";
+        tableWrap.style.display = "block";
+    }
+}
+
+function renderLocationRow(loc) {
+    const tbody = document.getElementById('locations-tbody');
+    const tr = document.createElement('tr');
+    tr.id = `loc-row-${loc.id}`;
+    tr.className = "location-row";
+
+    // Dropdown-Optionen vorbereiten
+    let optionsHtml = UTC_ZONES.map(z => 
+        `<option value="${z.offset}" ${z.offset === loc.offset ? 'selected' : ''}>${z.label}</option>`
+    ).join('');
+
+    tr.innerHTML = `
+        <td>
+            <input type="text" value="${loc.name}" style="width: 100%; font-weight: 600;" placeholder="z.B. Beobachtungspunkt" oninput="updateLocProperty(${loc.id}, 'name', this.value)">
+        </td>
+        <td>
+            <input type="number" step="0.0001" value="${loc.lat}" style="width: 100px;" oninput="updateLocProperty(${loc.id}, 'lat', parseFloat(this.value) || 0)">
+        </td>
+        <td>
+            <input type="number" step="0.0001" value="${loc.lon}" style="width: 100px;" oninput="updateLocProperty(${loc.id}, 'lon', parseFloat(this.value) || 0)">
+        </td>
+        <td>
+            <select style="width: 100%; font-size: 0.8rem;" onchange="updateLocProperty(${loc.id}, 'offset', parseFloat(this.value))">
+                ${optionsHtml}
+            </select>
+        </td>
+        <td class="time-cell highlight-cyan cell-zone-time">--:--:--</td>
+        <td class="time-cell highlight-gold cell-moz-time">--:--:--</td>
+        <td>
+            <span class="badge cell-diff">--</span>
+        </td>
+        <td>
+            <button class="btn btn-sm btn-danger" onclick="removeLocation(${loc.id})" title="Löschen">🗑️</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function updateLocProperty(id, prop, value) {
+    const loc = locations.find(l => l.id === id);
+    if (loc) {
+        loc[prop] = value;
+        if (prop === 'lon' || prop === 'offset' || prop === 'name') {
+            updateChart();
+        }
+    }
+}
+
+/**
+ * 5. CHART.JS DIAGRAMM
+ */
+let chart;
+
+function initChart() {
+    const ctx = document.getElementById('deviationChart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Abweichung MOZ zu Zonenzeit (Minuten)',
+                data: [],
+                backgroundColor: [],
+                borderColor: '#ffffff',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.06)' },
+                    ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } },
+                    title: { display: true, text: 'Minuten (±)', color: '#94a3b8' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8' }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#f1f5f9' } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.parsed.y;
+                            return `${val >= 0 ? '+' : ''}${val.toFixed(2)} Minuten (${val >= 0 ? 'MOZ eilt vor' : 'MOZ eilt nach'})`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChart() {
+    if (!chart) return;
+
+    const labels = [];
+    const data = [];
+    const colors = [];
+
+    // 1. Mein Standort
+    const uLon = parseFloat(document.getElementById('user-lon').value) || 0;
+    const uOffset = parseFloat(document.getElementById('user-offset').value) || 0;
+    const uDiff = (uLon - (uOffset * 15.0)) * 4.0;
+
+    labels.push("Mein Standort");
+    data.push(uDiff);
+    colors.push(uDiff >= 0 ? '#00d2ff' : '#ff4d6d');
+
+    // 2. Alle angelegten Orte
+    locations.forEach(loc => {
+        const diff = (loc.lon - (loc.offset * 15.0)) * 4.0;
+        labels.push(loc.name || "Unbenannt");
+        data.push(diff);
+        colors.push(diff >= 0 ? '#ffb703' : '#ff758f');
+    });
+
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].backgroundColor = colors;
+    chart.update();
+}
+
+/**
+ * 6. INITIALISIERUNG DER SYSTEME & EVENTS
+ */
+function initUserOffsets() {
+    const sel = document.getElementById('user-offset');
+    sel.innerHTML = "";
+    UTC_ZONES.forEach(z => {
+        const opt = document.createElement('option');
+        opt.value = z.offset;
+        opt.textContent = `${z.label} (Meridian: ${formatDegrees(z.lon)})`;
+        if (z.offset === 1) opt.selected = true; // MEZ Standard
+        sel.appendChild(opt);
+    });
+}
+
+function populateRefTable(filter = "") {
+    const tbody = document.getElementById('ref-table-body');
+    tbody.innerHTML = "";
+    const needle = filter.toLowerCase();
+
+    UTC_ZONES.filter(z => {
+        return z.label.toLowerCase().includes(needle) ||
+               z.region.toLowerCase().includes(needle) ||
+               z.lon.toString().includes(needle);
+    }).forEach(z => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong style="color:var(--accent-cyan);">${z.label}</strong></td>
+            <td>${formatDegrees(z.lon)}</td>
+            <td>${z.lon}°</td>
+            <td>${z.region}</td>
+            <td>${z.offset >= 0 ? '+' : ''}${z.offset * 60} min</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// GPS Abfrage
+document.getElementById('btn-gps').addEventListener('click', () => {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            document.getElementById('user-lat').value = pos.coords.latitude.toFixed(4);
+            document.getElementById('user-lon').value = pos.coords.longitude.toFixed(4);
+            
+            // Lokale Zeitzone anhand der Systemeinstellung abschätzen
+            const systemOffset = -(new Date().getTimezoneOffset() / 60);
+            document.getElementById('user-offset').value = systemOffset;
+            
+            updateClocks();
+            updateChart();
+        }, err => {
+            alert("Standortabfrage fehlgeschlagen: " + err.message);
+        });
+    } else {
+        alert("Geolocation wird von Ihrem Browser nicht unterstützt.");
+    }
+});
+
+// Event-Listener für Änderungen bei "Mein Standort"
+['user-lat', 'user-lon', 'user-offset'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+        updateClocks();
+        updateChart();
+    });
+});
+
+document.getElementById('btn-add-location').addEventListener('click', addLocation);
+
+document.getElementById('table-search').addEventListener('input', (e) => {
+    populateRefTable(e.target.value);
+});
+
+// Start beim Laden der Seite
+window.addEventListener('DOMContentLoaded', () => {
+    initUserOffsets();
+    initChart();
+    populateRefTable();
+    checkEmptyState();
+    updateChart();
+    updateClocks();
+
+    // Taktet absolut präzise alle 200 Millisekunden ohne Layout-Ruckeln
+    setInterval(updateClocks, 200);
+});
+</script>
+
+</body>
+</html>
