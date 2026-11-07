@@ -53,12 +53,13 @@
 
         .container {
             width: 100%;
-            max-width: 1560px;
+            max-width: 1600px;
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
 
+        /* HEADER */
         header {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -341,6 +342,24 @@
             box-shadow: 0 0 12px rgba(255, 42, 109, 0.4);
         }
 
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: var(--text-main);
+            padding: 3px 6px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.72rem;
+            line-height: 1.2;
+            transition: all 0.15s;
+        }
+
+        .btn-icon:hover {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
         /* METRIC CARDS */
         .stat-grid {
             display: grid;
@@ -437,35 +456,6 @@
             background: rgba(0, 240, 255, 0.03);
         }
 
-        /* DRAG & DROP STYLING */
-        .drag-handle {
-            cursor: grab;
-            font-size: 1.15rem;
-            color: var(--text-muted);
-            padding: 4px 6px;
-            user-select: none;
-            display: inline-block;
-            transition: color 0.2s;
-        }
-
-        .drag-handle:hover {
-            color: var(--cyan);
-        }
-
-        .drag-handle:active {
-            cursor: grabbing;
-        }
-
-        tr.is-dragging {
-            opacity: 0.35;
-            background: rgba(0, 240, 255, 0.12) !important;
-        }
-
-        tr.drag-over {
-            border-top: 2px solid var(--cyan) !important;
-        }
-
-        /* FAVORITEN STYLING */
         .btn-fav {
             background: transparent;
             border: none;
@@ -504,6 +494,12 @@
             font-family: var(--font-mono);
             font-weight: 700;
             font-size: 0.92rem;
+            cursor: copy;
+            transition: opacity 0.15s;
+        }
+        .time-cell-main:hover {
+            opacity: 0.8;
+            text-decoration: underline dotted;
         }
 
         .badge-diff {
@@ -513,7 +509,13 @@
             border-radius: 5px;
             font-weight: 700;
             display: inline-block;
+            cursor: copy;
+            transition: transform 0.15s;
         }
+        .badge-diff:hover {
+            transform: scale(1.04);
+        }
+
         .diff-pos { background: rgba(0, 245, 160, 0.12); color: var(--emerald); border: 1px solid rgba(0, 245, 160, 0.3); }
         .diff-neg { background: rgba(255, 42, 109, 0.12); color: var(--rose); border: 1px solid rgba(255, 42, 109, 0.3); }
         .diff-zero { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.2); }
@@ -523,13 +525,37 @@
             max-height: 400px;
             overflow-y: auto;
         }
+
+        /* TOAST NOTIFICATION */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(8, 13, 26, 0.95);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s, transform 0.25s;
+            transform: translateY(10px);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
 
-    <!-- HEADER MIT LIVE MASTER CLOCK -->
+    <!-- HEADER MIT LIVE MASTER CLOCK & SUBSOLAREM MERIDIAN -->
     <header>
         <div class="header-title">
             <h1>CHRONOS // ZONENZEIT & ASTRONOMISCHE ORTSZEIT</h1>
@@ -542,7 +568,11 @@
             </div>
             <div class="badge-telemetry">
                 <div class="label">Zeitgleichung (EoT)</div>
-                <div class="val hl-emerald" id="tele-eot">--</div>
+                <div class="val hl-emerald" id="tele-eot">--:--:--</div>
+            </div>
+            <div class="badge-telemetry">
+                <div class="label">Subsolarer Meridian (&lambda; Zenit)</div>
+                <div class="val hl-gold" id="tele-subsolar">--.----°</div>
             </div>
         </div>
     </header>
@@ -570,7 +600,9 @@
                     <option value="user-zone">Eigener Standort: Zonenzeit</option>
                     <option value="user-moz">Eigener Standort: Mittlere Ortszeit (MOZ)</option>
                     <option value="user-woz">Eigener Standort: Wahre Ortszeit (WOZ)</option>
-                    <option value="table-location">Eintrag aus Vergleichstabelle (MOZ)</option>
+                    <option value="table-zone">Tabelle: Zonenzeit</option>
+                    <option value="table-moz">Tabelle: Mittlere Ortszeit (MOZ)</option>
+                    <option value="table-woz">Tabelle: Wahre Ortszeit (WOZ)</option>
                 </select>
             </div>
 
@@ -673,17 +705,18 @@
         </div>
     </div>
 
-    <!-- MULTI-STANDORT VERGLEICHSTABELLE MIT DRAG & DROP & FAVORITEN -->
+    <!-- MULTI-STANDORT VERGLEICHSTABELLE -->
     <div class="card">
         <div class="card-header">
             <div>
                 <h2>🌐 Standort-Vergleichsliste</h2>
-                <p style="font-size: 0.78rem; color: var(--text-muted);">Ziehe Einträge an <strong>⠿</strong> zum Verschieben. Klicke <strong>★</strong>, um den Referenz-Favoriten für Differenzen festzulegen.</p>
+                <p style="font-size: 0.78rem; color: var(--text-muted);">Nutze <strong>▲ / ▼</strong> zum Ändern der Position, <strong>★</strong> für den Referenz-Favoriten und <strong>🎯</strong> zum Übernehmen als eigener Standort.</p>
             </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn btn-outline" id="btn-sort-west-east" title="Sortiert strikt von West nach Ost (UTC-12 bis UTC+14, dann Längengrad)">🧭 West &rarr; Ost sortieren</button>
-                <button class="btn btn-outline" id="btn-sort-alpha" title="Alphabetisch nach Name sortieren">🔤 A &rarr; Z sortieren</button>
-                <button class="btn btn-outline" id="btn-clear-all">🗑️ Liste leeren</button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="loc-search" placeholder="Tabelle filtern..." style="max-width: 200px; padding: 7px 10px; font-size: 0.8rem;">
+                <button class="btn btn-outline" id="btn-sort-west-east" title="Sortiert strikt von West nach Ost (UTC-12 bis UTC+14, dann Längengrad)">🧭 West &rarr; Ost</button>
+                <button class="btn btn-outline" id="btn-sort-alpha" title="Alphabetisch nach Name sortieren">🔤 A &rarr; Z</button>
+                <button class="btn btn-outline" id="btn-clear-all">🗑️ Leeren</button>
                 <button class="btn btn-outline" id="btn-export-json">💾 Exportieren</button>
                 <button class="btn btn-outline" id="btn-import-json">📂 Importieren</button>
                 <input type="file" id="file-import" accept=".json" style="display: none;">
@@ -695,7 +728,7 @@
             <table class="cyber-table">
                 <thead>
                     <tr>
-                        <th style="width: 50px; text-align: center;" title="Halten und ziehen zum Verschieben">Pos / ⠿</th>
+                        <th style="width: 72px; text-align: center;">Pos / Rang</th>
                         <th style="width: 40px; text-align: center;" title="Favorit als Referenz festlegen">Fav</th>
                         <th style="min-width: 170px;">Bezeichnung / Kennung</th>
                         <th style="min-width: 120px;">Längengrad (&lambda;)</th>
@@ -708,11 +741,11 @@
                         <th>Abw. MOZ von Zonenzeit</th>
                         <th>Abw. WOZ von Zonenzeit</th>
                         <th style="color: var(--gold);" title="Differenz der MOZ zu dem mit Stern markierten Favoriten">Abw. MOZ zu Favorit</th>
-                        <th style="text-align: center; width: 60px;">Aktion</th>
+                        <th style="text-align: center; width: 90px;">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody id="loc-tbody">
-                    <!-- Dynamisch erzeugt mit Drag & Drop -->
+                    <!-- Dynamisch erzeugt -->
                 </tbody>
             </table>
         </div>
@@ -745,201 +778,52 @@
 
 </div>
 
+<!-- TOAST BENACHRICHTIGUNG -->
+<div id="toast" class="toast">Kopiert!</div>
+
 <script>
 /**
  * 1. VOLLSTÄNDIGE UTC-ZEITZONENDATENBANK (UTC-12 BIS UTC+14)
  */
 const UTC_ZONES = [
-    { 
-        offset: -12, label: "UTC-12:00", lon: -180, 
-        sector: "Zone Y (Yankee) | 172.5° W bis 180.0° W",
-        names: "Baker Island Time (BIT), International Date Line West (IDLW), Anywhere on Earth (AoE)"
-    },
-    { 
-        offset: -11, label: "UTC-11:00", lon: -165, 
-        sector: "Zone X (X-ray) | 157.5° W bis 172.5° W",
-        names: "Niue Time (NUT), Samoa Standard Time (SST)"
-    },
-    { 
-        offset: -10, label: "UTC-10:00", lon: -150, 
-        sector: "Zone W (Whiskey) | 142.5° W bis 157.5° W",
-        names: "Hawaii-Aleutian Standard Time (HAST / HST), Cook Island Time (CKT), Tahiti Time (TAHT)"
-    },
-    { 
-        offset: -9.5, label: "UTC-09:30", lon: -142.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 142.5° W",
-        names: "Marquesas Time (MART)"
-    },
-    { 
-        offset: -9, label: "UTC-09:00", lon: -135, 
-        sector: "Zone V (Victor) | 127.5° W bis 142.5° W",
-        names: "Alaska Standard Time (AKST), Gambier Island Time (GAMT)"
-    },
-    { 
-        offset: -8, label: "UTC-08:00", lon: -120, 
-        sector: "Zone U (Uniform) | 112.5° W bis 127.5° W",
-        names: "Pacific Standard Time (PST), Clipperton Island Standard Time (CIST), Pitcairn Standard Time (PST)"
-    },
-    { 
-        offset: -7, label: "UTC-07:00", lon: -105, 
-        sector: "Zone T (Tango) | 97.5° W bis 112.5° W",
-        names: "Mountain Standard Time (MST), Mexican Pacific Standard Time (MST)"
-    },
-    { 
-        offset: -6, label: "UTC-06:00", lon: -90, 
-        sector: "Zone S (Sierra) | 82.5° W bis 97.5° W",
-        names: "Central Standard Time (CST), Galápagos Time (GALT), Easter Island Standard Time (EAST)"
-    },
-    { 
-        offset: -5, label: "UTC-05:00", lon: -75, 
-        sector: "Zone R (Romeo) | 67.5° W bis 82.5° W",
-        names: "Eastern Standard Time (EST), Acre Time (ACT), Colombia Time (COT), Ecuador Time (ECT), Peru Time (PET)"
-    },
-    { 
-        offset: -4, label: "UTC-04:00", lon: -60, 
-        sector: "Zone Q (Quebec) | 52.5° W bis 67.5° W",
-        names: "Atlantic Standard Time (AST), Amazon Time (AMT), Bolivia Time (BOT), Chile Standard Time (CLT), Guyana Time (GYT), Paraguay Time (PYT), Venezuela Time (VET)"
-    },
-    { 
-        offset: -3.5, label: "UTC-03:30", lon: -52.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 52.5° W",
-        names: "Newfoundland Standard Time (NST)"
-    },
-    { 
-        offset: -3, label: "UTC-03:00", lon: -45, 
-        sector: "Zone P (Papa) | 37.5° W bis 52.5° W",
-        names: "Brasília Time (BRT), Argentina Time (ART), Uruguay Time (UYT), Suriname Time (SRT), French Guiana Time (GFT), Falkland Islands Time (FKST), West Greenland Time (WGT)"
-    },
-    { 
-        offset: -2, label: "UTC-02:00", lon: -30, 
-        sector: "Zone O (Oscar) | 22.5° W bis 37.5° W",
-        names: "Fernando de Noronha Time (FNT), South Georgia Time (GST)"
-    },
-    { 
-        offset: -1, label: "UTC-01:00", lon: -15, 
-        sector: "Zone N (November) | 7.5° W bis 22.5° W",
-        names: "Cape Verde Time (CVT), Azores Standard Time (AZOT), East Greenland Time (EGT)"
-    },
-    { 
-        offset: 0, label: "UTC±00:00", lon: 0, 
-        sector: "Zone Z (Zulu / Greenwich Nullmeridian) | 7.5° W bis 7.5° E",
-        names: "Koordinierte Weltzeit (UTC), Greenwich Mean Time (GMT), Westeuropäische Zeit (WEZ / WET)"
-    },
-    { 
-        offset: 1, label: "UTC+01:00", lon: 15, 
-        sector: "Zone A (Alpha) | 7.5° E bis 22.5° E",
-        names: "Mitteleuropäische Zeit (MEZ / CET), West Africa Time (WAT), British Summer Time (BST), Westeuropäische Sommerzeit (WESZ / WEST), Irish Standard Time (IST)"
-    },
-    { 
-        offset: 2, label: "UTC+02:00", lon: 30, 
-        sector: "Zone B (Bravo) | 22.5° E bis 37.5° E",
-        names: "Osteuropäische Zeit (OEZ / EET), Mitteleuropäische Sommerzeit (MESZ / CEST), Central Africa Time (CAT), South Africa Standard Time (SAST), Israel Standard Time (IST), Kaliningrad Time (USZ1)"
-    },
-    { 
-        offset: 3, label: "UTC+03:00", lon: 45, 
-        sector: "Zone C (Charlie) | 37.5° E bis 52.5° E",
-        names: "Moscow Standard Time (MSK), East Africa Time (EAT), Arabia Standard Time (AST), Turkey Time (TRT), Osteuropäische Sommerzeit (OESZ / EEST)"
-    },
-    { 
-        offset: 3.5, label: "UTC+03:30", lon: 52.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 52.5° E",
-        names: "Iran Standard Time (IRST)"
-    },
-    { 
-        offset: 4, label: "UTC+04:00", lon: 60, 
-        sector: "Zone D (Delta) | 52.5° E bis 67.5° E",
-        names: "Gulf Standard Time (GST), Samara Time (SAMT), Georgia Standard Time (GET), Armenia Time (AMT), Azerbaijan Time (AZT), Mauritius Time (MUT), Seychelles Time (SCT), Réunion Time (RET)"
-    },
-    { 
-        offset: 4.5, label: "UTC+04:30", lon: 67.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 67.5° E",
-        names: "Afghanistan Time (AFT)"
-    },
-    { 
-        offset: 5, label: "UTC+05:00", lon: 75, 
-        sector: "Zone E (Echo) | 67.5° E bis 82.5° E",
-        names: "Pakistan Standard Time (PKT), Yekaterinburg Time (YEKT), Uzbekistan Time (UZT), Turkmenistan Time (TMT), Tajikistan Time (TJT), Maldives Time (MVT), French Southern and Antarctic Lands Time (TFT), Mawson Time (MAWT)"
-    },
-    { 
-        offset: 5.5, label: "UTC+05:30", lon: 82.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 82.5° E",
-        names: "Indian Standard Time (IST), Sri Lanka Standard Time (SLST)"
-    },
-    { 
-        offset: 5.75, label: "UTC+05:45", lon: 86.25, 
-        sector: "Sonderzone (45-Minuten-Versatz) | 86.25° E",
-        names: "Nepal Time (NPT)"
-    },
-    { 
-        offset: 6, label: "UTC+06:00", lon: 90, 
-        sector: "Zone F (Foxtrot) | 82.5° E bis 97.5° E",
-        names: "Bangladesh Standard Time (BST), Bhutan Time (BTT), Omsk Time (OMST), Vostok Time (VOST), Indian Ocean Territory Time (IOT)"
-    },
-    { 
-        offset: 6.5, label: "UTC+06:30", lon: 97.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 97.5° E",
-        names: "Myanmar Time (MMT), Cocos Islands Time (CCT)"
-    },
-    { 
-        offset: 7, label: "UTC+07:00", lon: 105, 
-        sector: "Zone G (Golf) | 97.5° E bis 112.5° E",
-        names: "Indochina Time (ICT), Western Indonesia Time (WIB), Krasnoyarsk Time (KRAT), Novosibirsk Time (NOVT), Hovd Time (HOVT), Christmas Island Time (CXT), Davis Time (DAVT)"
-    },
-    { 
-        offset: 8, label: "UTC+08:00", lon: 120, 
-        sector: "Zone H (Hotel) | 112.5° E bis 127.5° E",
-        names: "China Standard Time (CST), Singapore Standard Time (SGT), Hong Kong Time (HKT), Central Indonesia Time (WITA), Philippine Standard Time (PST), Australian Western Standard Time (AWST), Irkutsk Time (IRKT), Ulaanbaatar Time (ULAT), Malaysia Time (MYT), Brunei Darussalam Time (BNT)"
-    },
-    { 
-        offset: 8.75, label: "UTC+08:45", lon: 131.25, 
-        sector: "Sonderzone (45-Minuten-Versatz) | 131.25° E",
-        names: "Australian Central Western Standard Time (ACWST)"
-    },
-    { 
-        offset: 9, label: "UTC+09:00", lon: 135, 
-        sector: "Zone I (India) | 127.5° E bis 142.5° E",
-        names: "Japan Standard Time (JST), Korea Standard Time (KST), Eastern Indonesia Time (WIT), Yakutsk Time (YAKT), Palau Time (PWT), Timor-Leste Time (TLT)"
-    },
-    { 
-        offset: 9.5, label: "UTC+09:30", lon: 142.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 142.5° E",
-        names: "Australian Central Standard Time (ACST)"
-    },
-    { 
-        offset: 10, label: "UTC+10:00", lon: 150, 
-        sector: "Zone K (Kilo) | 142.5° E bis 157.5° E",
-        names: "Australian Eastern Standard Time (AEST), Vladivostok Time (VLAT), Chamorro Standard Time (ChST), Papua New Guinea Time (PGT), Chuuk Time (CHUT), Dumont d'Urville Time (DDUT)"
-    },
-    { 
-        offset: 10.5, label: "UTC+10:30", lon: 157.5, 
-        sector: "Sonderzone (30-Minuten-Versatz) | 157.5° E",
-        names: "Lord Howe Standard Time (LHST)"
-    },
-    { 
-        offset: 11, label: "UTC+11:00", lon: 165, 
-        sector: "Zone L (Lima) | 157.5° E bis 172.5° E",
-        names: "Solomon Islands Time (SBT), Vanuatu Time (VUT), New Caledonia Time (NCT), Magadan Time (MAGT), Sakhalin Time (SAKT), Srednekolymsk Time (SRET), Norfolk Island Time (NFT), Bougainville Standard Time (BST), Kosrae Time (KOST), Pohnpei Standard Time (PONT)"
-    },
-    { 
-        offset: 12, label: "UTC+12:00", lon: 180, 
-        sector: "Zone M (Mike) | 172.5° E bis 180.0°",
-        names: "New Zealand Standard Time (NZST), Fiji Time (FJT), Gilbert Island Time (GILT), Marshall Islands Time (MHT), Nauru Time (NRT), Tuvalu Time (TVT), Wake Island Time (WAKT), Wallis and Futuna Time (WFT), Kamchatka Time (PETT), Anadyr Time (ANAT)"
-    },
-    { 
-        offset: 12.75, label: "UTC+12:45", lon: -168.75, 
-        sector: "Sonderzone Datumsgrenze (+12:45) | 168.75° W",
-        names: "Chatham Island Standard Time (CHAST)"
-    },
-    { 
-        offset: 13, label: "UTC+13:00", lon: -165, 
-        sector: "Sonderzone Datumsgrenze (+13:00) | 165.0° W",
-        names: "West Samoa Time (WST), Tonga Time (TOT), Phoenix Islands Time (PHOT), Tokelau Time (TKT), New Zealand Daylight Time (NZDT)"
-    },
-    { 
-        offset: 14, label: "UTC+14:00", lon: -150, 
-        sector: "Sonderzone Datumsgrenze (+14:00) | 150.0° W",
-        names: "Line Islands Time (LINT)"
-    }
+    { offset: -12, label: "UTC-12:00", lon: -180, sector: "Zone Y (Yankee) | 172.5° W bis 180.0° W", names: "Baker Island Time (BIT), International Date Line West (IDLW), Anywhere on Earth (AoE)" },
+    { offset: -11, label: "UTC-11:00", lon: -165, sector: "Zone X (X-ray) | 157.5° W bis 172.5° W", names: "Niue Time (NUT), Samoa Standard Time (SST)" },
+    { offset: -10, label: "UTC-10:00", lon: -150, sector: "Zone W (Whiskey) | 142.5° W bis 157.5° W", names: "Hawaii-Aleutian Standard Time (HAST / HST), Cook Island Time (CKT), Tahiti Time (TAHT)" },
+    { offset: -9.5, label: "UTC-09:30", lon: -142.5, sector: "Sonderzone (30-Minuten-Versatz) | 142.5° W", names: "Marquesas Time (MART)" },
+    { offset: -9, label: "UTC-09:00", lon: -135, sector: "Zone V (Victor) | 127.5° W bis 142.5° W", names: "Alaska Standard Time (AKST), Gambier Island Time (GAMT)" },
+    { offset: -8, label: "UTC-08:00", lon: -120, sector: "Zone U (Uniform) | 112.5° W bis 127.5° W", names: "Pacific Standard Time (PST), Clipperton Island Standard Time (CIST), Pitcairn Standard Time (PST)" },
+    { offset: -7, label: "UTC-07:00", lon: -105, sector: "Zone T (Tango) | 97.5° W bis 112.5° W", names: "Mountain Standard Time (MST), Mexican Pacific Standard Time (MST)" },
+    { offset: -6, label: "UTC-06:00", lon: -90, sector: "Zone S (Sierra) | 82.5° W bis 97.5° W", names: "Central Standard Time (CST), Galápagos Time (GALT), Easter Island Standard Time (EAST)" },
+    { offset: -5, label: "UTC-05:00", lon: -75, sector: "Zone R (Romeo) | 67.5° W bis 82.5° W", names: "Eastern Standard Time (EST), Acre Time (ACT), Colombia Time (COT), Ecuador Time (ECT), Peru Time (PET)" },
+    { offset: -4, label: "UTC-04:00", lon: -60, sector: "Zone Q (Quebec) | 52.5° W bis 67.5° W", names: "Atlantic Standard Time (AST), Amazon Time (AMT), Bolivia Time (BOT), Chile Standard Time (CLT), Guyana Time (GYT), Paraguay Time (PYT), Venezuela Time (VET)" },
+    { offset: -3.5, label: "UTC-03:30", lon: -52.5, sector: "Sonderzone (30-Minuten-Versatz) | 52.5° W", names: "Newfoundland Standard Time (NST)" },
+    { offset: -3, label: "UTC-03:00", lon: -45, sector: "Zone P (Papa) | 37.5° W bis 52.5° W", names: "Brasília Time (BRT), Argentina Time (ART), Uruguay Time (UYT), Suriname Time (SRT), French Guiana Time (GFT), Falkland Islands Time (FKST), West Greenland Time (WGT)" },
+    { offset: -2, label: "UTC-02:00", lon: -30, sector: "Zone O (Oscar) | 22.5° W bis 37.5° W", names: "Fernando de Noronha Time (FNT), South Georgia Time (GST)" },
+    { offset: -1, label: "UTC-01:00", lon: -15, sector: "Zone N (November) | 7.5° W bis 22.5° W", names: "Cape Verde Time (CVT), Azores Standard Time (AZOT), East Greenland Time (EGT)" },
+    { offset: 0, label: "UTC±00:00", lon: 0, sector: "Zone Z (Zulu / Greenwich Nullmeridian) | 7.5° W bis 7.5° E", names: "Koordinierte Weltzeit (UTC), Greenwich Mean Time (GMT), Westeuropäische Zeit (WEZ / WET)" },
+    { offset: 1, label: "UTC+01:00", lon: 15, sector: "Zone A (Alpha) | 7.5° E bis 22.5° E", names: "Mitteleuropäische Zeit (MEZ / CET), West Africa Time (WAT), British Summer Time (BST), Westeuropäische Sommerzeit (WESZ / WEST), Irish Standard Time (IST)" },
+    { offset: 2, label: "UTC+02:00", lon: 30, sector: "Zone B (Bravo) | 22.5° E bis 37.5° E", names: "Osteuropäische Zeit (OEZ / EET), Mitteleuropäische Sommerzeit (MESZ / CEST), Central Africa Time (CAT), South Africa Standard Time (SAST), Israel Standard Time (IST), Kaliningrad Time (USZ1)" },
+    { offset: 3, label: "UTC+03:00", lon: 45, sector: "Zone C (Charlie) | 37.5° E bis 52.5° E", names: "Moscow Standard Time (MSK), East Africa Time (EAT), Arabia Standard Time (AST), Turkey Time (TRT), Osteuropäische Sommerzeit (OESZ / EEST)" },
+    { offset: 3.5, label: "UTC+03:30", lon: 52.5, sector: "Sonderzone (30-Minuten-Versatz) | 52.5° E", names: "Iran Standard Time (IRST)" },
+    { offset: 4, label: "UTC+04:00", lon: 60, sector: "Zone D (Delta) | 52.5° E bis 67.5° E", names: "Gulf Standard Time (GST), Samara Time (SAMT), Georgia Standard Time (GET), Armenia Time (AMT), Azerbaijan Time (AZT), Mauritius Time (MUT), Seychelles Time (SCT), Réunion Time (RET)" },
+    { offset: 4.5, label: "UTC+04:30", lon: 67.5, sector: "Sonderzone (30-Minuten-Versatz) | 67.5° E", names: "Afghanistan Time (AFT)" },
+    { offset: 5, label: "UTC+05:00", lon: 75, sector: "Zone E (Echo) | 67.5° E bis 82.5° E", names: "Pakistan Standard Time (PKT), Yekaterinburg Time (YEKT), Uzbekistan Time (UZT), Turkmenistan Time (TMT), Tajikistan Time (TJT), Maldives Time (MVT), French Southern and Antarctic Lands Time (TFT), Mawson Time (MAWT)" },
+    { offset: 5.5, label: "UTC+05:30", lon: 82.5, sector: "Sonderzone (30-Minuten-Versatz) | 82.5° E", names: "Indian Standard Time (IST), Sri Lanka Standard Time (SLST)" },
+    { offset: 5.75, label: "UTC+05:45", lon: 86.25, sector: "Sonderzone (45-Minuten-Versatz) | 86.25° E", names: "Nepal Time (NPT)" },
+    { offset: 6, label: "UTC+06:00", lon: 90, sector: "Zone F (Foxtrot) | 82.5° E bis 97.5° E", names: "Bangladesh Standard Time (BST), Bhutan Time (BTT), Omsk Time (OMST), Vostok Time (VOST), Indian Ocean Territory Time (IOT)" },
+    { offset: 6.5, label: "UTC+06:30", lon: 97.5, sector: "Sonderzone (30-Minuten-Versatz) | 97.5° E", names: "Myanmar Time (MMT), Cocos Islands Time (CCT)" },
+    { offset: 7, label: "UTC+07:00", lon: 105, sector: "Zone G (Golf) | 97.5° E bis 112.5° E", names: "Indochina Time (ICT), Western Indonesia Time (WIB), Krasnoyarsk Time (KRAT), Novosibirsk Time (NOVT), Hovd Time (HOVT), Christmas Island Time (CXT), Davis Time (DAVT)" },
+    { offset: 8, label: "UTC+08:00", lon: 120, sector: "Zone H (Hotel) | 112.5° E bis 127.5° E", names: "China Standard Time (CST), Singapore Standard Time (SGT), Hong Kong Time (HKT), Central Indonesia Time (WITA), Philippine Standard Time (PST), Australian Western Standard Time (AWST), Irkutsk Time (IRKT), Ulaanbaatar Time (ULAT), Malaysia Time (MYT), Brunei Darussalam Time (BNT)" },
+    { offset: 8.75, label: "UTC+08:45", lon: 131.25, sector: "Sonderzone (45-Minuten-Versatz) | 131.25° E", names: "Australian Central Western Standard Time (ACWST)" },
+    { offset: 9, label: "UTC+09:00", lon: 135, sector: "Zone I (India) | 127.5° E bis 142.5° E", names: "Japan Standard Time (JST), Korea Standard Time (KST), Eastern Indonesia Time (WIT), Yakutsk Time (YAKT), Palau Time (PWT), Timor-Leste Time (TLT)" },
+    { offset: 9.5, label: "UTC+09:30", lon: 142.5, sector: "Sonderzone (30-Minuten-Versatz) | 142.5° E", names: "Australian Central Standard Time (ACST)" },
+    { offset: 10, label: "UTC+10:00", lon: 150, sector: "Zone K (Kilo) | 142.5° E bis 157.5° E", names: "Australian Eastern Standard Time (AEST), Vladivostok Time (VLAT), Chamorro Standard Time (ChST), Papua New Guinea Time (PGT), Chuuk Time (CHUT), Dumont d'Urville Time (DDUT)" },
+    { offset: 10.5, label: "UTC+10:30", lon: 157.5, sector: "Sonderzone (30-Minuten-Versatz) | 157.5° E", names: "Lord Howe Standard Time (LHST)" },
+    { offset: 11, label: "UTC+11:00", lon: 165, sector: "Zone L (Lima) | 157.5° E bis 172.5° E", names: "Solomon Islands Time (SBT), Vanuatu Time (VUT), New Caledonia Time (NCT), Magadan Time (MAGT), Sakhalin Time (SAKT), Srednekolymsk Time (SRET), Norfolk Island Time (NFT), Bougainville Standard Time (BST), Kosrae Time (KOST), Pohnpei Standard Time (PONT)" },
+    { offset: 12, label: "UTC+12:00", lon: 180, sector: "Zone M (Mike) | 172.5° E bis 180.0°", names: "New Zealand Standard Time (NZST), Fiji Time (FJT), Gilbert Island Time (GILT), Marshall Islands Time (MHT), Nauru Time (NRT), Tuvalu Time (TVT), Wake Island Time (WAKT), Wallis and Futuna Time (WFT), Kamchatka Time (PETT), Anadyr Time (ANAT)" },
+    { offset: 12.75, label: "UTC+12:45", lon: -168.75, sector: "Sonderzone Datumsgrenze (+12:45) | 168.75° W", names: "Chatham Island Standard Time (CHAST)" },
+    { offset: 13, label: "UTC+13:00", lon: -165, sector: "Sonderzone Datumsgrenze (+13:00) | 165.0° W", names: "West Samoa Time (WST), Tonga Time (TOT), Phoenix Islands Time (PHOT), Tokelau Time (TKT), New Zealand Daylight Time (NZDT)" },
+    { offset: 14, label: "UTC+14:00", lon: -150, sector: "Sonderzone Datumsgrenze (+14:00) | 150.0° W", names: "Line Islands Time (LINT)" }
 ];
 
 /**
@@ -949,10 +833,15 @@ let isLiveMode = true;
 let simulatedUTCDate = new Date();
 let locations = [];
 let favoriteLocationId = null;
+let locationSearchFilter = "";
 
 /**
  * 3. ASTRONOMISCHE & GEODÄTISCHE MATHEMATIK
  */
+
+function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
 
 function formatLongitude(deg) {
     if (isNaN(deg)) return "0.0000°";
@@ -962,14 +851,20 @@ function formatLongitude(deg) {
     return `${Math.abs(d).toFixed(4)}° ${dir}`;
 }
 
-// Zeitgleichung nach Spencer / NOAA (in Minuten)
+// Zeitgleichung nach Spencer / NOAA mit Schaltjahr-Korrektur und stufenlosen Sekunden
 function calculateEquationOfTime(date) {
-    const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 0));
+    const year = date.getUTCFullYear();
+    const isLeap = isLeapYear(year);
+    const daysInYear = isLeap ? 366 : 365;
+
+    const start = new Date(Date.UTC(year, 0, 0));
     const diff = date - start;
     const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    const gamma = (2 * Math.PI / 365) * (dayOfYear - 1 + (date.getUTCHours() - 12) / 24);
-    
+
+    // Stufenlose Dezimalstunde verhindert Stunden-Sprünge
+    const fractionalHour = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+    const gamma = (2 * Math.PI / daysInYear) * (dayOfYear - 1 + (fractionalHour - 12) / 24);
+
     return 229.18 * (
         0.000075 +
         0.001868 * Math.cos(gamma) -
@@ -979,7 +874,7 @@ function calculateEquationOfTime(date) {
     );
 }
 
-// OFFIZIELLES STANDARD-FORMAT: ±HH:MM:SS
+// Offizielles Standard-Format: ±HH:MM:SS
 function formatDurationHms(minutes) {
     if (isNaN(minutes)) return "--:--:--";
     const totalSec = Math.round(minutes * 60);
@@ -991,32 +886,31 @@ function formatDurationHms(minutes) {
     return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// Formatierung von Dezimalstunden mit sauberem Datumsversatz
 function formatTimeWithDayOffset(decimalHours) {
     const daysOffset = Math.floor(decimalHours / 24);
     const normalizedHours = ((decimalHours % 24) + 24) % 24;
-    
+
     let totalSec = Math.round(normalizedHours * 3600);
     let finalDays = daysOffset;
     if (totalSec >= 86400) {
         totalSec -= 86400;
         finalDays += 1;
     }
-    
+
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
     const s = totalSec % 60;
 
     const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    
+
     let dayBadge = '<span class="day-badge day-today">Heute</span>';
     if (finalDays > 0) dayBadge = `<span class="day-badge day-next">+${finalDays}d</span>`;
     if (finalDays < 0) dayBadge = `<span class="day-badge day-prev">${finalDays}d</span>`;
-    
+
     return { timeStr, dayBadge, daysOffset: finalDays };
 }
 
-// Vollständige Standort-Kalkulation
+// Vollständige Standort-Kalkulation inklusive zweistufiger Solar-Noon-Präzision
 function computeLocation(lon, offset, utcDate) {
     const eotMinutes = calculateEquationOfTime(utcDate);
 
@@ -1040,19 +934,24 @@ function computeLocation(lon, offset, utcDate) {
     // 4. Abweichung MOZ von UTC: MOZ - UTC = lon * 4 Minuten
     const diffMozFromUtc = lon * 4.0;
 
-    // 5. Abweichung MOZ von Zonenzeit: MOZ - Zonenzeit = (lon * 4) - (offset * 60)
-    // Kürzester Kreisabstand [-720, +720] Minuten
+    // 5. Abweichung MOZ von Zonenzeit: MOZ - Zonenzeit
     let rawDiffMozZone = (lon * 4.0) - (offset * 60.0);
     let diffMozFromZone = ((rawDiffMozZone % 1440.0) + 1440.0) % 1440.0;
     if (diffMozFromZone > 720.0) diffMozFromZone -= 1440.0;
 
-    // 6. Abweichung WOZ von Zonenzeit: WOZ - Zonenzeit = diffMozFromZone + EoT
+    // 6. Abweichung WOZ von Zonenzeit: WOZ - Zonenzeit
     let rawDiffWozZone = diffMozFromZone + eotMinutes;
     let diffWozFromZone = ((rawDiffWozZone % 1440.0) + 1440.0) % 1440.0;
     if (diffWozFromZone > 720.0) diffWozFromZone -= 1440.0;
 
-    // 7. Wahrer Mittag (Zenit): WOZ = 12:00:00 umgerechnet in Zonenzeit
-    const solarNoonUtcHours = 12.0 - (lon / 15.0) - (eotMinutes / 60.0);
+    // 7. Wahrer Mittag (Zenit): Zweistufig ermittelt (Beseitigt Tageszeit-Sekundendrift)
+    const initialNoonUtcHours = 12.0 - (lon / 15.0) - (eotMinutes / 60.0);
+    const noonDateApprox = new Date(utcDate.getTime());
+    noonDateApprox.setUTCHours(0, 0, 0, 0);
+    noonDateApprox.setUTCSeconds(Math.round(initialNoonUtcHours * 3600));
+
+    const exactNoonEot = calculateEquationOfTime(noonDateApprox);
+    const solarNoonUtcHours = 12.0 - (lon / 15.0) - (exactNoonEot / 60.0);
     const solarNoonZoneHours = solarNoonUtcHours + offset;
     const noonData = formatTimeWithDayOffset(solarNoonZoneHours);
 
@@ -1100,8 +999,11 @@ function updateDynamicParamUI() {
     } else if (category === 'custom-meridian') {
         label.textContent = "Referenz-Längengrad (&lambda;):";
         merInput.style.display = 'block';
-    } else if (category === 'table-location') {
-        label.textContent = "Eintrag aus Tabelle wählen:";
+    } else if (category.startsWith('table-')) {
+        if (category === 'table-zone') label.textContent = "Tabelle: Ort (Zonenzeit) wählen:";
+        else if (category === 'table-moz') label.textContent = "Tabelle: Ort (MOZ) wählen:";
+        else if (category === 'table-woz') label.textContent = "Tabelle: Ort (WOZ) wählen:";
+
         tabSel.style.display = 'block';
         tabSel.innerHTML = "";
         if (locations.length === 0) {
@@ -1133,7 +1035,7 @@ function syncSimulationFromControls() {
     const selectedDecimalHours = hours + (minutes || 0) / 60 + (seconds || 0) / 3600;
 
     let targetDate = dateVal ? new Date(dateVal + 'T00:00:00Z') : new Date();
-    const eotMinutes = calculateEquationOfTime(targetDate);
+    const eotMidnight = calculateEquationOfTime(targetDate);
 
     let calculatedUtcHours = selectedDecimalHours;
 
@@ -1151,12 +1053,28 @@ function syncSimulationFromControls() {
         calculatedUtcHours = selectedDecimalHours - (uLon / 15.0);
     } else if (category === 'user-woz') {
         const uLon = parseFloat(document.getElementById('user-lon').value) || 0;
-        calculatedUtcHours = selectedDecimalHours - (uLon / 15.0) - (eotMinutes / 60.0);
-    } else if (category === 'table-location') {
+        let estUtc = selectedDecimalHours - (uLon / 15.0) - (eotMidnight / 60.0);
+        let testDate = new Date(targetDate.getTime());
+        testDate.setUTCHours(0, 0, 0, 0);
+        testDate.setUTCSeconds(Math.round(estUtc * 3600));
+        const exactEot = calculateEquationOfTime(testDate);
+        calculatedUtcHours = selectedDecimalHours - (uLon / 15.0) - (exactEot / 60.0);
+    } else if (category.startsWith('table-')) {
         const selectedId = Number(document.getElementById('sim-ref-table-select').value);
         const loc = locations.find(l => l.id === selectedId);
         if (loc) {
-            calculatedUtcHours = selectedDecimalHours - (loc.lon / 15.0);
+            if (category === 'table-zone') {
+                calculatedUtcHours = selectedDecimalHours - loc.offset;
+            } else if (category === 'table-moz') {
+                calculatedUtcHours = selectedDecimalHours - (loc.lon / 15.0);
+            } else if (category === 'table-woz') {
+                let estUtc = selectedDecimalHours - (loc.lon / 15.0) - (eotMidnight / 60.0);
+                let testDate = new Date(targetDate.getTime());
+                testDate.setUTCHours(0, 0, 0, 0);
+                testDate.setUTCSeconds(Math.round(estUtc * 3600));
+                const exactEot = calculateEquationOfTime(testDate);
+                calculatedUtcHours = selectedDecimalHours - (loc.lon / 15.0) - (exactEot / 60.0);
+            }
         }
     }
 
@@ -1169,7 +1087,7 @@ function syncSimulationFromControls() {
 }
 
 /**
- * 5. MASTER-AKTUALISIERUNG DER ANZEIGEN
+ * 5. MASTER-AKTUALISIERUNG DER ANZEIGEN & SUBSOLARER MERIDIAN
  */
 function updateAll() {
     const activeDate = getActiveDate();
@@ -1179,6 +1097,13 @@ function updateAll() {
     const utcHoursStr = `${String(activeDate.getUTCHours()).padStart(2, '0')}:${String(activeDate.getUTCMinutes()).padStart(2, '0')}:${String(activeDate.getUTCSeconds()).padStart(2, '0')} UTC`;
     document.getElementById('tele-utc').textContent = utcHoursStr;
     document.getElementById('tele-eot').textContent = formatDurationHms(eot);
+
+    // Subsolarer Meridian (Längengrad mit WOZ = 12:00:00)
+    const utcDecimal = activeDate.getUTCHours() + activeDate.getUTCMinutes() / 60 + activeDate.getUTCSeconds() / 3600;
+    let subsolarLon = (12.0 - utcDecimal - (eot / 60.0)) * 15.0;
+    while (subsolarLon > 180) subsolarLon -= 360;
+    while (subsolarLon < -180) subsolarLon += 360;
+    document.getElementById('tele-subsolar').textContent = formatLongitude(subsolarLon);
 
     // Eigener Beobachtungspunkt
     const userLon = parseFloat(document.getElementById('user-lon').value) || 0;
@@ -1191,7 +1116,6 @@ function updateAll() {
     document.getElementById('disp-user-woz').textContent = userCalc.wozTime;
     document.getElementById('disp-user-noon').textContent = userCalc.solarNoon;
     
-    // Einheitliche Abweichungen im Standard-Format
     document.getElementById('disp-user-diff-utc').textContent = userCalc.diffMozFromUtcFormatted;
     document.getElementById('disp-user-diff-moz-zone').textContent = userCalc.diffMozFromZoneFormatted;
     document.getElementById('disp-user-diff-woz-zone').textContent = userCalc.diffWozFromZoneFormatted;
@@ -1213,22 +1137,20 @@ function updateAll() {
         row.querySelector('.cell-woz').innerHTML = `${calc.wozTime} ${calc.wozDay}`;
         row.querySelector('.cell-noon').textContent = calc.solarNoon;
 
-        // 1. Abweichung MOZ von UTC
+        // Abweichungen
         const diffUtcCell = row.querySelector('.cell-diff-utc');
         diffUtcCell.textContent = calc.diffMozFromUtcFormatted;
         diffUtcCell.className = `badge-diff cell-diff-utc ${calc.diffMozFromUtc > 0 ? 'diff-pos' : calc.diffMozFromUtc < 0 ? 'diff-neg' : 'diff-zero'}`;
 
-        // 2. Abweichung MOZ von Zonenzeit
         const diffMozZoneCell = row.querySelector('.cell-diff-moz-zone');
         diffMozZoneCell.textContent = calc.diffMozFromZoneFormatted;
         diffMozZoneCell.className = `badge-diff cell-diff-moz-zone ${calc.diffMozFromZone > 0 ? 'diff-pos' : calc.diffMozFromZone < 0 ? 'diff-neg' : 'diff-zero'}`;
 
-        // 3. Abweichung WOZ von Zonenzeit
         const diffWozZoneCell = row.querySelector('.cell-diff-woz-zone');
         diffWozZoneCell.textContent = calc.diffWozFromZoneFormatted;
         diffWozZoneCell.className = `badge-diff cell-diff-woz-zone ${calc.diffWozFromZone > 0 ? 'diff-pos' : calc.diffWozFromZone < 0 ? 'diff-neg' : 'diff-zero'}`;
 
-        // 4. Abweichung MOZ von MOZ des Favoriten
+        // Differenz zu Favorit
         const diffFavCell = row.querySelector('.cell-diff-fav');
         if (!favLocation) {
             diffFavCell.textContent = "--:--:--";
@@ -1251,13 +1173,17 @@ function updateAll() {
 }
 
 /**
- * 6. TABELLEN-RENDERING & DRAG-AND-DROP LOGIK
+ * 6. TABELLEN-RENDERING & INTERAKTIONEN
  */
-let draggedIndex = null;
-
 function renderTable() {
     const tbody = document.getElementById('loc-tbody');
     tbody.innerHTML = "";
+
+    const filter = locationSearchFilter.toLowerCase().trim();
+    const visibleLocations = locations.filter(l => 
+        (l.name && l.name.toLowerCase().includes(filter)) ||
+        l.lon.toString().includes(filter)
+    );
 
     if (locations.length === 0) {
         tbody.innerHTML = `
@@ -1270,11 +1196,21 @@ function renderTable() {
         return;
     }
 
-    locations.forEach((loc, index) => {
+    if (visibleLocations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="14" style="text-align: center; color: var(--text-muted); padding: 24px 16px;">
+                    Keine Standorte passend zum Filter <em>„${locationSearchFilter}“</em> gefunden.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    visibleLocations.forEach((loc) => {
+        const actualIndex = locations.findIndex(l => l.id === loc.id);
         const tr = document.createElement('tr');
         tr.id = `loc-row-${loc.id}`;
-        tr.dataset.index = index;
-        tr.draggable = true;
 
         const isFav = (loc.id === favoriteLocationId);
 
@@ -1285,8 +1221,9 @@ function renderTable() {
         tr.innerHTML = `
             <td style="text-align: center;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                    <span class="drag-handle" title="Halten und ziehen zum Verschieben">⠿</span>
-                    <span class="cell-pos" style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); width: 22px;">#${index + 1}</span>
+                    <span class="cell-pos" style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); width: 22px;">#${actualIndex + 1}</span>
+                    <button class="btn-icon" onclick="moveLocation(${actualIndex}, -1)" title="Nach oben verschieben">▲</button>
+                    <button class="btn-icon" onclick="moveLocation(${actualIndex}, 1)" title="Nach unten verschieben">▼</button>
                 </div>
             </td>
             <td style="text-align: center;">
@@ -1305,28 +1242,24 @@ function renderTable() {
                     ${zoneOptions}
                 </select>
             </td>
-            <td class="time-cell-main hl-cyan cell-zone">--:--:--</td>
-            <td class="time-cell-main hl-gold cell-moz">--:--:--</td>
-            <td class="time-cell-main hl-emerald cell-woz">--:--:--</td>
-            <td class="time-cell-main hl-violet cell-noon">--:--:--</td>
-            <td><span class="badge-diff cell-diff-utc">--:--:--</span></td>
-            <td><span class="badge-diff cell-diff-moz-zone">--:--:--</span></td>
-            <td><span class="badge-diff cell-diff-woz-zone">--:--:--</span></td>
-            <td><span class="badge-diff cell-diff-fav">--:--:--</span></td>
+            <td class="time-cell-main hl-cyan cell-zone" onclick="copyCellText(this)" title="Klicken zum Kopieren">--:--:--</td>
+            <td class="time-cell-main hl-gold cell-moz" onclick="copyCellText(this)" title="Klicken zum Kopieren">--:--:--</td>
+            <td class="time-cell-main hl-emerald cell-woz" onclick="copyCellText(this)" title="Klicken zum Kopieren">--:--:--</td>
+            <td class="time-cell-main hl-violet cell-noon" onclick="copyCellText(this)" title="Klicken zum Kopieren">--:--:--</td>
+            <td><span class="badge-diff cell-diff-utc" onclick="copyBadgeText(this)" title="Klicken zum Kopieren">--:--:--</span></td>
+            <td><span class="badge-diff cell-diff-moz-zone" onclick="copyBadgeText(this)" title="Klicken zum Kopieren">--:--:--</span></td>
+            <td><span class="badge-diff cell-diff-woz-zone" onclick="copyBadgeText(this)" title="Klicken zum Kopieren">--:--:--</span></td>
+            <td><span class="badge-diff cell-diff-fav" onclick="copyBadgeText(this)" title="Klicken zum Kopieren">--:--:--</span></td>
             <td style="text-align: center;">
-                <button class="btn btn-danger" onclick="deleteLocation(${loc.id})" style="padding: 4px 8px;" title="Löschen">✕</button>
+                <div style="display: flex; gap: 4px; justify-content: center;">
+                    <button class="btn-icon" onclick="adoptLocationAsUser(${loc.id})" title="Diesen Ort als eigenen Beobachtungspunkt übernehmen">🎯</button>
+                    <button class="btn btn-danger" onclick="deleteLocation(${loc.id})" style="padding: 3px 7px;" title="Löschen">✕</button>
+                </div>
             </td>
         `;
 
         tr.querySelector('.input-loc-name').value = loc.name;
         tr.querySelector('.input-loc-lon').value = loc.lon;
-
-        // DRAG AND DROP EVENT LISTENERS
-        tr.addEventListener('dragstart', handleDragStart);
-        tr.addEventListener('dragover', handleDragOver);
-        tr.addEventListener('dragleave', handleDragLeave);
-        tr.addEventListener('drop', handleDrop);
-        tr.addEventListener('dragend', handleDragEnd);
 
         tbody.appendChild(tr);
     });
@@ -1334,45 +1267,16 @@ function renderTable() {
     attachTableEvents();
 }
 
-function handleDragStart(e) {
-    draggedIndex = Number(this.dataset.index);
-    this.classList.add('is-dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', draggedIndex);
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const targetRow = this.closest('tr');
-    if (targetRow && !targetRow.classList.contains('is-dragging')) {
-        targetRow.classList.add('drag-over');
-    }
-}
-
-function handleDragLeave(e) {
-    this.classList.remove('drag-over');
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    this.classList.remove('drag-over');
-    const targetIndex = Number(this.dataset.index);
-    if (draggedIndex !== null && draggedIndex !== targetIndex) {
-        const movedItem = locations.splice(draggedIndex, 1)[0];
-        locations.splice(targetIndex, 0, movedItem);
-        saveState();
-        renderTable();
-        updateDynamicParamUI();
-        updateAll();
-    }
-}
-
-function handleDragEnd(e) {
-    document.querySelectorAll('#loc-tbody tr').forEach(row => {
-        row.classList.remove('is-dragging', 'drag-over');
-    });
-    draggedIndex = null;
+function moveLocation(index, delta) {
+    const targetIndex = index + delta;
+    if (targetIndex < 0 || targetIndex >= locations.length) return;
+    const temp = locations[index];
+    locations[index] = locations[targetIndex];
+    locations[targetIndex] = temp;
+    renderTable();
+    updateDynamicParamUI();
+    saveState();
+    updateAll();
 }
 
 function attachTableEvents() {
@@ -1414,23 +1318,24 @@ function attachTableEvents() {
 }
 
 function toggleFavorite(id) {
-    if (favoriteLocationId === id) {
-        favoriteLocationId = null; // Deaktivieren
-    } else {
-        favoriteLocationId = id; // Als Favorit setzen
-    }
+    favoriteLocationId = (favoriteLocationId === id) ? null : id;
     saveState();
     renderTable();
     updateAll();
 }
 
+function adoptLocationAsUser(id) {
+    const loc = locations.find(l => l.id === id);
+    if (!loc) return;
+    document.getElementById('user-lon').value = loc.lon;
+    document.getElementById('user-offset').value = loc.offset;
+    saveState();
+    updateAll();
+    showToast(`'${loc.name}' als Beobachtungspunkt übernommen!`);
+}
+
 function sortWestToEast() {
-    locations.sort((a, b) => {
-        if (a.offset !== b.offset) {
-            return a.offset - b.offset;
-        }
-        return a.lon - b.lon;
-    });
+    locations.sort((a, b) => (a.offset !== b.offset) ? (a.offset - b.offset) : (a.lon - b.lon));
     renderTable();
     updateDynamicParamUI();
     saveState();
@@ -1450,7 +1355,6 @@ function addLocation(name = "", lon = 0.0, offset = 0) {
     const newLoc = { id: Date.now(), name: locName, lon, offset };
     locations.push(newLoc);
     
-    // Wenn erster Ort angelegt wird, direkt als Favorit setzen
     if (locations.length === 1 && favoriteLocationId === null) {
         favoriteLocationId = newLoc.id;
     }
@@ -1466,6 +1370,19 @@ function deleteLocation(id) {
         favoriteLocationId = null;
     }
     locations = locations.filter(l => l.id !== id);
+
+    // Bereinigung falls der gelöschte Ort aktiver Referenzort in Simulation war
+    const simCategory = document.getElementById('sim-ref-category').value;
+    const simSelectedId = Number(document.getElementById('sim-ref-table-select').value);
+    if (simCategory.startsWith('table-') && simSelectedId === id) {
+        if (locations.length > 0) {
+            document.getElementById('sim-ref-table-select').value = locations[0].id;
+        } else {
+            document.getElementById('sim-ref-category').value = 'utc-zone';
+            showToast("Gelöschter Referenzort: Simulation auf UTC zurückgestellt.");
+        }
+    }
+
     renderTable();
     updateDynamicParamUI();
     saveState();
@@ -1484,7 +1401,28 @@ function clearAllLocations() {
 }
 
 /**
- * 7. REFERENZTABELLE ALLER UTC-MERIDIANE
+ * 7. CLIPBOARD- & TOAST-FUNKTION
+ */
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+function copyCellText(el) {
+    const cleanText = el.innerText.replace(/[\n\r]/g, ' ').trim();
+    navigator.clipboard.writeText(cleanText).then(() => showToast(`Kopiert: ${cleanText}`));
+}
+
+function copyBadgeText(el) {
+    const text = el.textContent.trim();
+    navigator.clipboard.writeText(text).then(() => showToast(`Kopiert: ${text}`));
+}
+
+/**
+ * 8. REFERENZTABELLE ALLER UTC-MERIDIANE
  */
 function buildRefTable(filter = "") {
     const tbody = document.getElementById('ref-tbody');
@@ -1511,31 +1449,28 @@ function buildRefTable(filter = "") {
 }
 
 /**
- * 8. PERSISTENZ (LOCAL STORAGE)
+ * 9. PERSISTENZ (GANZHEITLICHES LOCAL STORAGE & BACKUP)
  */
 function saveState() {
     const data = {
+        version: "CHRONOS_GOLD_1.0",
         userLon: document.getElementById('user-lon').value,
         userOffset: document.getElementById('user-offset').value,
         locations: locations,
         favoriteLocationId: favoriteLocationId
     };
-    localStorage.setItem('chronos_precision_state_v3', JSON.stringify(data));
+    localStorage.setItem('chronos_precision_state_v4', JSON.stringify(data));
 }
 
 function loadState() {
     try {
-        const saved = localStorage.getItem('chronos_precision_state_v3');
+        const saved = localStorage.getItem('chronos_precision_state_v4');
         if (saved) {
             const data = JSON.parse(saved);
             if (data.userLon !== undefined) document.getElementById('user-lon').value = data.userLon;
             if (data.userOffset !== undefined) document.getElementById('user-offset').value = data.userOffset;
-            if (Array.isArray(data.locations)) {
-                locations = data.locations;
-            }
-            if (data.favoriteLocationId !== undefined) {
-                favoriteLocationId = data.favoriteLocationId;
-            }
+            if (Array.isArray(data.locations)) locations = data.locations;
+            if (data.favoriteLocationId !== undefined) favoriteLocationId = data.favoriteLocationId;
         }
     } catch(e) {
         console.warn("Ladefehler des Speichers", e);
@@ -1543,7 +1478,7 @@ function loadState() {
 }
 
 /**
- * 9. INITIALISIERUNG DER STEUERELEMENTE
+ * 10. INITIALISIERUNG DER STEUERELEMENTE
  */
 function setupControls() {
     const userOffsetSel = document.getElementById('user-offset');
@@ -1697,27 +1632,42 @@ function setupControls() {
         }
     };
 
+    // Filter für Vergleichstabelle
+    document.getElementById('loc-search').oninput = (e) => {
+        locationSearchFilter = e.target.value;
+        renderTable();
+        updateAll();
+    };
+
     // Sortier- & Tabellenbuttons
     document.getElementById('btn-sort-west-east').onclick = sortWestToEast;
     document.getElementById('btn-sort-alpha').onclick = sortAlphabetical;
     document.getElementById('btn-add-loc').onclick = () => addLocation();
     document.getElementById('btn-clear-all').onclick = clearAllLocations;
 
-    // JSON Export / Import
+    // Ganzheitlicher JSON Export
     document.getElementById('btn-export-json').onclick = () => {
-        const payload = JSON.stringify(locations, null, 2);
-        const blob = new Blob([payload], { type: "application/json" });
+        const payload = {
+            version: "CHRONOS_GOLD_1.0",
+            exportDate: new Date().toISOString(),
+            userLocation: {
+                lon: parseFloat(document.getElementById('user-lon').value) || 0,
+                offset: parseFloat(document.getElementById('user-offset').value) || 0
+            },
+            favoriteLocationId: favoriteLocationId,
+            locations: locations
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `chronos_locations_${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `chronos_gold_backup_${new Date().toISOString().slice(0,10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
     };
 
-    document.getElementById('btn-import-json').onclick = () => {
-        document.getElementById('file-import').click();
-    };
+    // Ganzheitlicher JSON Import
+    document.getElementById('btn-import-json').onclick = () => document.getElementById('file-import').click();
 
     document.getElementById('file-import').onchange = (e) => {
         const file = e.target.files[0];
@@ -1728,22 +1678,30 @@ function setupControls() {
                 const parsed = JSON.parse(evt.target.result);
                 if (Array.isArray(parsed)) {
                     locations = parsed;
-                    renderTable();
-                    updateDynamicParamUI();
-                    saveState();
-                    updateAll();
+                } else if (parsed && typeof parsed === 'object') {
+                    if (Array.isArray(parsed.locations)) locations = parsed.locations;
+                    if (parsed.userLocation) {
+                        if (parsed.userLocation.lon !== undefined) document.getElementById('user-lon').value = parsed.userLocation.lon;
+                        if (parsed.userLocation.offset !== undefined) document.getElementById('user-offset').value = parsed.userLocation.offset;
+                    }
+                    if (parsed.favoriteLocationId !== undefined) {
+                        favoriteLocationId = parsed.favoriteLocationId;
+                    }
                 }
+                renderTable();
+                updateDynamicParamUI();
+                saveState();
+                updateAll();
+                showToast("Konfiguration & Standorte erfolgreich importiert!");
             } catch(err) {
-                alert("Ungültige JSON-Datei!");
+                alert("Ungültige JSON-Datei: " + err.message);
             }
         };
         reader.readAsText(file);
     };
 
     // Suche in Referenztabelle
-    document.getElementById('ref-search').oninput = (e) => {
-        buildRefTable(e.target.value);
-    };
+    document.getElementById('ref-search').oninput = (e) => buildRefTable(e.target.value);
 
     document.getElementById('sim-date-input').value = new Date().toISOString().slice(0, 10);
 }
@@ -1757,7 +1715,7 @@ window.addEventListener('DOMContentLoaded', () => {
     buildRefTable();
     updateAll();
 
-    // 1-Sekunden-Takt
+    // Akkusparender & stabiler 1-Sekunden-Takt
     setInterval(() => {
         if (isLiveMode) {
             updateAll();
