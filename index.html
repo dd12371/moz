@@ -518,10 +518,9 @@
             text-shadow: var(--glow-cyan);
         }
 
-        /* TABLE */
+        /* TABLE BASE STYLING */
         .table-responsive {
             width: 100%;
-            overflow-x: auto;
             border-radius: 12px;
             border: 1px solid var(--border);
             background: rgba(5, 8, 18, 0.4);
@@ -536,24 +535,22 @@
 
         table.cyber-table th {
             background: #090e1c;
-            padding: 12px 14px;
+            padding: 10px 6px;
             color: var(--cyan);
             font-family: var(--font-display);
             text-transform: uppercase;
-            font-size: 0.72rem;
-            letter-spacing: 1px;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 10;
-            white-space: nowrap;
         }
 
         table.cyber-table td {
-            padding: 10px 14px;
+            padding: 8px 6px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             vertical-align: middle;
-            white-space: nowrap;
         }
 
         table.cyber-table tr:hover td {
@@ -570,12 +567,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 2px 6px;
-        }
-
-        .btn-fav:hover {
-            color: var(--gold);
-            transform: scale(1.2);
+            padding: 2px 4px;
         }
 
         .btn-fav.active {
@@ -584,8 +576,8 @@
         }
 
         .day-badge {
-            font-size: 0.68rem;
-            padding: 2px 6px;
+            font-size: 0.62rem;
+            padding: 1px 4px;
             border-radius: 4px;
             font-family: var(--font-mono);
             font-weight: 700;
@@ -597,7 +589,7 @@
         .time-cell-main {
             font-family: var(--font-mono);
             font-weight: 700;
-            font-size: 0.92rem;
+            font-size: 0.82rem;
             cursor: copy;
             transition: opacity 0.15s;
         }
@@ -608,9 +600,9 @@
 
         .badge-diff {
             font-family: var(--font-mono);
-            font-size: 0.8rem;
-            padding: 3px 8px;
-            border-radius: 5px;
+            font-size: 0.74rem;
+            padding: 2px 5px;
+            border-radius: 4px;
             font-weight: 700;
             display: inline-block;
             cursor: copy;
@@ -628,6 +620,244 @@
         .scroll-ref-wrap {
             max-height: 400px;
             overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        /* ==========================================================================
+           DESKTOP-MODUS (>= 1025px): 100% BREITE, KEIN HORIZONTALES SCROLLEN
+           ========================================================================== */
+        @media (min-width: 1025px) {
+            .table-responsive:not(.scroll-ref-wrap) {
+                overflow-x: hidden !important; /* Kein horizontaler Scrollbalken mehr */
+            }
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table {
+                table-layout: fixed;
+                width: 100%;
+            }
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th,
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table td {
+                white-space: normal !important;
+                padding: 6px 3px !important;
+                font-size: 0.72rem !important;
+                text-align: center;
+            }
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th {
+                min-width: 0 !important;
+                line-height: 1.15;
+            }
+            /* Exakt abgestimmte Prozentbreiten für alle 14 Spalten */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(1) { width: 4.5% !important; }  /* Pos */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(2) { width: 2.8% !important; }  /* Fav */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(3) { width: 9.8% !important; text-align: left; }  /* Name */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(4) { width: 14.5% !important; text-align: left; } /* Lon */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(5) { width: 9.2% !important; }  /* Offset */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(6) { width: 7.2% !important; }  /* Zone */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(7) { width: 7.2% !important; }  /* MOZ */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(8) { width: 7.2% !important; }  /* WOZ */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(9) { width: 6.2% !important; }  /* Mittag */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(10) { width: 7.4% !important; } /* Abw. UTC */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(11) { width: 7.4% !important; } /* Abw. MOZ-Zone */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(12) { width: 7.4% !important; } /* Abw. WOZ-Zone */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(13) { width: 7.4% !important; } /* Abw. Fav */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table th:nth-child(14) { width: 3.2% !important; } /* Del */
+
+            .table-responsive:not(.scroll-ref-wrap) .input-loc-name {
+                width: 100% !important;
+                padding: 4px 5px !important;
+                font-size: 0.74rem !important;
+            }
+            .table-responsive:not(.scroll-ref-wrap) .input-loc-lon {
+                width: 100% !important;
+                padding: 4px !important;
+                font-size: 0.72rem !important;
+            }
+            .table-responsive:not(.scroll-ref-wrap) .cell-loc-lon-display {
+                font-size: 0.65rem !important;
+                line-height: 1.15 !important;
+                text-align: left;
+            }
+            .table-responsive:not(.scroll-ref-wrap) .cell-loc-lon-display div {
+                font-size: 0.65rem !important;
+            }
+            .table-responsive:not(.scroll-ref-wrap) .select-loc-offset {
+                width: 100% !important;
+                padding: 4px 1px !important;
+                font-size: 0.68rem !important;
+            }
+            .table-responsive:not(.scroll-ref-wrap) .badge-diff {
+                display: block;
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
+                padding: 2px 1px !important;
+                font-size: 0.68rem !important;
+            }
+            .table-responsive:not(.scroll-ref-wrap) .time-cell-main {
+                font-size: 0.74rem !important;
+                white-space: nowrap !important;
+            }
+        }
+
+        /* ==========================================================================
+           SMARTPHONE & TABLET MODUS (<= 1024px): RESPONSIVES KARTEN-DASHBOARD
+           ========================================================================== */
+        @media (max-width: 1024px) {
+            .table-responsive:not(.scroll-ref-wrap) {
+                overflow-x: visible !important;
+                background: transparent !important;
+                border: none !important;
+            }
+
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table {
+                display: block;
+                width: 100%;
+            }
+
+            /* Desktop-Kopfzeile auf Mobilgeräten komplett ausblenden */
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table thead {
+                display: none !important;
+            }
+
+            .table-responsive:not(.scroll-ref-wrap) table.cyber-table tbody {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                width: 100%;
+            }
+
+            /* Jede Tabellenzeile wird zu einer autarken Karte */
+            #loc-tbody tr {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+                background: rgba(13, 20, 38, 0.95);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                padding: 14px;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+                width: 100%;
+            }
+
+            #loc-tbody tr td {
+                padding: 0 !important;
+                border: none !important;
+                white-space: normal !important;
+            }
+
+            /* Kopfzeile der Kachel: Rang, Stern & Löschen-Button */
+            #loc-tbody tr td:nth-child(1) { grid-column: 1 / 3; display: flex; align-items: center; justify-content: flex-start; gap: 6px; }
+            #loc-tbody tr td:nth-child(2) { grid-column: 3 / 4; display: flex; align-items: center; justify-content: center; }
+            #loc-tbody tr td:nth-child(14) { grid-column: 4 / 5; display: flex; align-items: center; justify-content: flex-end; }
+
+            /* Ortsbezeichnung (voller Breitenstreifen) */
+            #loc-tbody tr td:nth-child(3) { grid-column: 1 / 5; margin-top: 2px; }
+            #loc-tbody tr .input-loc-name {
+                font-size: 0.95rem;
+                font-weight: 700;
+                color: #fff;
+                background: rgba(0, 240, 255, 0.05);
+                border: 1px solid var(--border-bright);
+                padding: 8px 12px;
+            }
+
+            /* Koordinaten & Zeitzone */
+            #loc-tbody tr td:nth-child(4) { grid-column: 1 / 3; }
+            #loc-tbody tr td:nth-child(5) { grid-column: 3 / 5; }
+
+            #loc-tbody tr td:nth-child(4)::before {
+                content: "Längengrad (λ):";
+                display: block;
+                font-family: var(--font-display);
+                font-size: 0.62rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                color: var(--text-muted);
+                margin-bottom: 3px;
+            }
+
+            #loc-tbody tr td:nth-child(5)::before {
+                content: "Zeitzone (Offset):";
+                display: block;
+                font-family: var(--font-display);
+                font-size: 0.62rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                color: var(--text-muted);
+                margin-bottom: 3px;
+            }
+
+            #loc-tbody tr td:nth-child(4) input,
+            #loc-tbody tr td:nth-child(5) select {
+                width: 100% !important;
+            }
+
+            /* 8 Metrik-Felder (Zeiten & Abweichungen) als Kacheln */
+            #loc-tbody tr td:nth-child(n+6):nth-child(-n+13) {
+                background: rgba(5, 8, 18, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 8px;
+                padding: 6px 8px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+                min-height: 48px;
+            }
+
+            /* Automatische Beschriftung via CSS ::before */
+            #loc-tbody tr td:nth-child(n+6):nth-child(-n+13)::before {
+                display: block;
+                font-family: var(--font-display);
+                font-size: 0.62rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                color: var(--text-muted);
+                margin-bottom: 2px;
+            }
+
+            #loc-tbody tr td.cell-zone::before { content: "Zonenzeit (Uhr)"; }
+            #loc-tbody tr td.cell-moz::before { content: "Mittlere Ortszeit (MOZ)"; }
+            #loc-tbody tr td.cell-woz::before { content: "Wahre Ortszeit (WOZ)"; }
+            #loc-tbody tr td.cell-noon::before { content: "Wahrer Mittag"; }
+            #loc-tbody tr td:nth-child(10)::before { content: "Abw. MOZ von UTC"; }
+            #loc-tbody tr td:nth-child(11)::before { content: "Abw. MOZ - Zone"; }
+            #loc-tbody tr td:nth-child(12)::before { content: "Abw. WOZ - Zone"; }
+            #loc-tbody tr td:nth-child(13)::before { content: "Abw. zu Favorit ★"; color: var(--gold); }
+
+            #loc-tbody tr td:nth-child(n+10):nth-child(-n+13) .badge-diff {
+                display: inline-block;
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
+            }
+
+            /* Aufteilung auf Tablets (4 Spalten) */
+            #loc-tbody tr td:nth-child(6), #loc-tbody tr td:nth-child(10) { grid-column: 1 / 2; }
+            #loc-tbody tr td:nth-child(7), #loc-tbody tr td:nth-child(11) { grid-column: 2 / 3; }
+            #loc-tbody tr td:nth-child(8), #loc-tbody tr td:nth-child(12) { grid-column: 3 / 4; }
+            #loc-tbody tr td:nth-child(9), #loc-tbody tr td:nth-child(13) { grid-column: 4 / 5; }
+
+            /* Aufteilung auf Smartphones (< 640px) in ein 2-Spalten-Raster */
+            @media (max-width: 640px) {
+                #loc-tbody tr td:nth-child(6), #loc-tbody tr td:nth-child(8),
+                #loc-tbody tr td:nth-child(10), #loc-tbody tr td:nth-child(12) {
+                    grid-column: 1 / 3 !important;
+                }
+                #loc-tbody tr td:nth-child(7), #loc-tbody tr td:nth-child(9),
+                #loc-tbody tr td:nth-child(11), #loc-tbody tr td:nth-child(13) {
+                    grid-column: 3 / 5 !important;
+                }
+            }
+
+            /* Vollbreite für "Keine Standorte"-Meldung */
+            #loc-tbody tr td[colspan] {
+                grid-column: 1 / -1 !important;
+                text-align: center !important;
+                padding: 24px 12px !important;
+            }
         }
 
         /* TOAST NOTIFICATION */
